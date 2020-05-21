@@ -23,7 +23,7 @@ function curry1(fn) {
     var args = [].slice.call(arguments, 1);
     return function () {
         var newArgs = args.concat([].slice.call(arguments));
-        fn.apply(this, newArgs);
+        return fn.apply(this, newArgs);
     };
 }
 // 使用示例：
