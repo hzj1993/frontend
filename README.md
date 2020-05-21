@@ -8,3 +8,22 @@
 
 ###### JavaScript
 
+**夯实基础首选：**
+
+《JavaScript高级程序设计（第三版）》
+
+**进阶：**
+
+《你不知道的JavaScript（上中下）》
+
+**冴羽博客：**
+https://github.com/mqyqingfeng/Blog
+
+
+**神三元博客：**
+http://47.98.159.95/my_blog/js-base/001.html
+
+**语音课程：**
+
+《极客时间--重学前端》
+
