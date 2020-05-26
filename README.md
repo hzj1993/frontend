@@ -24,6 +24,9 @@ https://github.com/mqyqingfeng/Blog
 **神三元博客：**
 http://47.98.159.95/my_blog/js-base/001.html
 
+**阮一峰 ECMAScript 6 入门**
+https://es6.ruanyifeng.com/#docs/promise
+
 **语音课程：**
 
 《极客时间--重学前端》
