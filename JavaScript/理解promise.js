@@ -186,6 +186,8 @@ MyPromise.prototype.then = function (onFulfilled, onRejected) {
                 }
             });
             self.rejectedCallbacks.push(() => {
+                // 假如调用 then 时没指定 onRejected 方法，就会进入 catch 中，调用 promise2 的 reject 方法，将错误传递到 promise2
+                // 如：xxx.then(() => {/* ... */}) 第二个参数为空，没指定 onRejected ，xxx.then(() => {/* ... */}).catch(() => {/* 接收到前一个的错误 */})
                 try {
                     const x = onRejected(self.value);
                     // 解释如上
