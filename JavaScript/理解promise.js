@@ -345,7 +345,7 @@ MyPromise.race = function (list) {
             }).catch(error => {
                 reject(error);
                 return;
-            })
+            });
         }
     });
 };

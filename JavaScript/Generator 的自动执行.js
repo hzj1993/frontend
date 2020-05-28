@@ -202,9 +202,47 @@
 })();
 
 // 在上面的基础上简化一下
+// 以下就是模拟co实现的自动执行
 (function () {
     function run(gen) {
+        return new Promise((resolve, reject) => {
+            gen = gen();
 
+            // 如果gen不是迭代器，提早resolve
+            if (!gen || typeof gen.next !== 'function') return resolve(gen);
+
+            onFulfilled();
+
+            function onFulfilled(data) {
+                var ret;
+                try {
+                    ret = gen.next(data);
+                } catch (e) {
+                    reject(e);
+                }
+                next(ret);
+            }
+
+            function onRejected(err) {
+                var ret;
+                try {
+                    ret = gen.throw(err);
+                } catch (e) {
+                    reject(e);
+                }
+                next(ret);
+            }
+
+            function next(ret) {
+                if (ret.done) resolve(ret.value);
+                var value = toPromise(ret.value);
+                // ret.value转为Promise后，也有可能不是Promise实例
+                if (value && isPromise(value)) return value.then(onFulfilled, onRejected);
+                return onRejected(new TypeError('You may only yield a function, promise ' +
+                    'but the following object was passed: "' + String(ret.value) + '"'));
+            }
+
+        });
     }
     function isPromise(obj) {
         return typeof obj.then === 'function';
@@ -222,5 +260,6 @@
             });
         });
     }
+    module.exports = run;
 })();
 
