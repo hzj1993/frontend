@@ -122,7 +122,7 @@ MyPromiseSimple.prototype.then = function (onFulfilled, onRejected) {
 /** ============================================================================================================== **/
 
 // 实现一个符合 Promise/A+ 规范的 Promise
-// 以下代码理解可能会比较困难（理解这段代码我卡了两天...），建议一边参考规范一边看
+// 以下代码理解可能会比较困难（理解这段代码我用了三天...），建议一边参考规范一边看
 // Promise/A+ 规范地址：https://www.ituring.com.cn/article/66566
 
 function MyPromise(fn) {
@@ -274,10 +274,81 @@ function resolutionProcedure(promise2, x, resolve, reject) {
     }
 }
 
+// 实现Promise.resolve、Promise.reject、finally、catch方法
+MyPromise.resolve = function (value) {
+    if (value instanceof MyPromise) return value;
+    return new MyPromise((resolve, reject) => {
+        // 如果参数 value 是一个 thenable 对象，则该新的 Mypromise 对象的状态跟随 value 的状态
+        if (value && typeof value.then === 'function') {
+            value.then(resolve, reject);
+        } else {
+            resolve(value);
+        }
+    });
+};
+MyPromise.reject = function (value) {
+    if (value instanceof MyPromise) return value;
+    return new MyPromise((resolve, reject) => {
+        reject(value);
+    });
+};
+MyPromise.prototype.finally = function (callback) {
+    this.then(value => {
+        return MyPromise.resolve(callback()).then(() => {
+            return value;
+        });
+    }, error => {
+        return MyPromise.resolve(callback()).then(() => {
+            return error;
+        });
+    });
+};
+MyPromise.prototype.catch = function (onRejected) {
+    return this.then(null, onRejected);
+};
 
-
-
-
+// 实现all、race
+MyPromise.all = function (list) {
+    return new MyPromise((resolve, reject) => {
+        let length = list.length;
+        let result = [];
+        if (!length) {
+            resolve(result);
+            return;
+        }
+        const handleData = function (data, i) {
+            result[i] = data;
+            if (i + 1 === length) {
+                resolve(result);
+            }
+        };
+        for (let i = 0; i < length; i++) {
+            MyPromise.resolve(list[i]).then(data => {
+                handleData(data, i);
+            }).catch(error => {
+                reject(error);
+            });
+        }
+    });
+};
+MyPromise.race = function (list) {
+    return new MyPromise((resolve, reject) => {
+        const length = list.length;
+        if (!length) {
+            resolve();
+            return;
+        }
+        for (let i = 0; i < length; i++) {
+            MyPromise.resolve(list[i]).then(data => {
+                resolve(data);
+                return;
+            }).catch(error => {
+                reject(error);
+                return;
+            })
+        }
+    });
+};
 
 
 
