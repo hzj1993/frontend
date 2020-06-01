@@ -223,3 +223,8 @@ var Child = /*#__PURE__*/function (_Parent) {
 
 var child1 = new Child('kevin', '18');
 console.log(child1);
+// 综上， 使用 extends 继承的时候，
+// constructor 函数内必须要调用 super()，
+// 而且 class 定义的类只能用 new 进行调用，
+// 如果 Parent 的 constructor 返回的是 object 或者 function ，子类的 constructor 的 this 指向的是这个对象或函数
+// extends 同时继承构造函数和构造函数的原型对象
