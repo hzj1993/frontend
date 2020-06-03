@@ -88,6 +88,22 @@ function text(subObj) {
 console.log(obj); // {subObj:{o:1}}
 
 // 对应到上面 exports 不能直接赋值也是一样的原因。
+// 看一下 Node 官方文档的代码：
+function require(/* ... */) {
+    const module = { exports: {} };
+    ((module, exports) => {
+        // 模块文件代码，在这个例子中，定义了一个函数
+        function someFunc() {}
+        exports = someFunc;
+        // At this point, exports is no longer a shortcut to module.exports, and
+        // this module will still export an empty default object.
+        module.exports = someFunc;
+        // At this point, the module will now export someFunc, instead of the
+        // default object.
+    })(module, module.exports);
+    return module.exports;
+}
+
 
 
 // 深入思考：为什么浏览器不能直接使用 CommonJS 形式加载模块？
