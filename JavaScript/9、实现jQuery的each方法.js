@@ -12,7 +12,7 @@ function each(obj, iteratee) {
     if (obj == null || typeof obj !== 'object') {
         throw new Error('传入的obj不是对象类型或者数组类型！');
     }
-    // isArrayLike参考【类型判断.js】内实现
+    // isArrayLike参考【8、类型判断.js】内实现
     if (isArrayLike(obj)) {
         for (var i = 0; i < obj.length; i++) {
             // 如果传入的函数return false，则跳出循环
