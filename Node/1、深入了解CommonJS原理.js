@@ -1,8 +1,8 @@
 /**
  * JavaScript 的模块加载是很重要的内容，浏览器端主要有 CMD、AMD、ES Module 等实现模块加载，而服务端（Node）主要是 CommonJS
  *
- * AMD 特点是依赖提前原则，会先加载所有需要的模块，然后再执行代码，并且支持回调函数，代表库有 require.js
- * CMD 是依赖就近原则，代码在执行时遇到加载模块代码时才进行模块加载，加载模块时同步操作，会阻塞后面代码的执行，代表库有 sea.js
+ * AMD 特点是依赖提前原则，会先加载所有需要的模块，然后再执行代码，并且异步加载，代表库有 require.js
+ * CMD 是依赖就近原则，异步加载模块，代表库有 sea.js
  * ES Module 是 ES6 提出的模块加载的方案，通过 import 和 export 关键字进行导入导出模块，兼容性还不够好，目前需要 Babel 转为 CommonJS 使用，在编译阶段加载模块
  * CommonJS 与 CMD 规范有相似之处，都是依赖就近原则，通过 require()、module.exports 等导入导出模块
  *
