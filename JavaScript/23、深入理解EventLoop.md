@@ -244,8 +244,10 @@ mutate
 timeout
 ```
 ```
-需要注意的是这里 MutationObserver 是微任务，监听了 outer 的 attributes 变化，一旦 outer 的 attributes
-被修改，回调函数就会添加到微任务队列等待主线程执行
+点击 outer 后，点击事件作为宏任务添加到宏任务队列，并触发回调函数 onClick 然后主线程开始执行 onClick，
+一开始输出 click ，setTimeout 加入宏任务队列，Promise then 加入微任务队列，Mutation Observer
+加入微任务队列，此时 onClick 函数退出调用栈，进入检查点，执行微任务队列中的任务，依次输出 promise 和 mutate。
+最后由于 setTimeout 已到期，执行定时器任务，输出 timeout
 ```
 
 再来看看点击 inner，结果是什么：
@@ -262,16 +264,203 @@ timeout
 ```
 
 ```
-点击 inner 先输出 click，遇到了 setTimeout 就把 setTimeout 定时器任务添加到延时队列，接着执行到
-Promise.resolve().then() 就把 then 任务添加到微任务队列，然后执行 outer.setAttribute ，MutationObserver 
-的回调任务添加到微任务队列。然后开始执行微任务队列的任务，输出 promise、mutate。
-因为是点击事件，会发生事件冒泡，触发 outer 的 click 事件，因为然后输出 click，遇到setTimeout、promise 和 setAttribute，
-并按照点击 inner 的逻辑添加到对应的队列，此时主线程中的同步代码执行完毕，开始执行微任务队列的任务，
-此时 microtasks 是这样的：[Promise then, Mutation Observer, Promise then, Mutation Observer]，微任务队列
-被执行完之后输出：
+点击 inner 后，点击事件作为宏任务添加到宏任务队列，并触发回调函数 onClick 然后主线程开始执行 onClick，
+一开始输出 click ，setTimeout 加入宏任务队列，Promise then 加入微任务队列，Mutation Observer
+加入微任务队列，此时 onClick 函数退出调用栈，进入检查点，执行微任务队列中的任务，依次输出 promise 和 mutate。
+此时 onClick 任务结束，同时发生事件冒泡，outer 的 onClick 函数被推入调用栈，输出 click，setTimeout
+添加到宏任务队列，Promise then 添加到微任务队列，Mutation Observer 添加到微任务队列，onClick 已没有
+可执行的同步代码，开始执行微任务队列，输出 promise、mutate，此时点击事件任务结束，执行下一个宏任务列表中的任务，
+输出 timeout、timeout
 ```
 
+这里可能会有疑惑，为什么两个 click 会分开输出？而且第一次 click 输出之后就会执行微任务列表中的任务，
+而不是冒泡之后再执行？
 
+```
+这里的 microtasks 在事件回调之后执行，只要没有其他 JavaScript 在执行。
+这是来自 HTML 的规范：
+If the stack of script settings objects is now empty，perform a microtask checkpoint。
+```
+我总结一下就是，该例子中由于第一次触发的 onClick 回调执行完成，当前的执行栈为空，没有其余正在执行的代码
+（这是重点），微任务才开始执行，微任务执行完成，由于当前执行的宏任务为点击事件，会触发事件冒泡，于是
+outer 的 onClick 被执行。
+
+**练习二**
+
+同样是上述的题目，但是这次不是通过鼠标点击触发，而是通过这句代码触发：`inner.click();`，猜猜结果又是什么。
+
+答案（Chrome 浏览器）：
+
+```
+click
+click
+promise
+mutate
+promise
+timeout
+timeout
+```
+
+似乎与用户点击输出的结果差别很大，我再来解释一下。这里有个关键点：click() 让 inner 的 onClick 和 outer 的 
+onClick 同步触发，所以就会导致 click 先被输出。
+
+这里还有一个注意的地方：mutate 只输出了一次，这里由于第二次触发 mutation 的时候，发现微任务队列已有
+mutation 的微任务，就不再添加同样的微任务。
+
+简单总结一下上面两条练习：
+
+- 宏任务按顺序执行，每条宏任务之间可能会执行渲染
+- 微任务按顺序执行，在以下情况执行：
+  - 每个回调之后，只要没有其他代码在执行
+  - 每个宏任务的末尾
+
+##### async、await的执行顺序问题
+
+先看看以下代码。
+
+```javascript
+const p = Promise.resolve();
+(async () => {
+    await p;
+    console.log('after:await');
+})();
+p.then(() => console.log('tick:a'))
+ .then(() => console.log('tick:b'));
+```
+
+```
+Node.js 8 版本
+after:await
+tick:a
+tick:b
+
+Node.js 10 版本
+tick:a
+tick:b
+after:await
+```
+
+我们预期是得到上面的结果，但这却是错误的，因为并没有按照规范执行，下面的才是正确的，我们先来看看
+以下代码在源码中怎么实现：
+
+![img](../img/await-under-the-hood.svg)
+
+1、首先是第一句
+
+```
+async function foo(v) {
+
+对应
+
+resumable function foo(v) {
+  implicit_promise = createPromise();
+``` 
+
+创建了一个隐式 Promise，这是调用 foo 返回的 Promise 。
+
+2、然后是第二句
+
+```
+const w = await v;
+
+对应
+
+// 1. 将 v 包装在一个 promise 对象里面
+promise = createPromise();
+resolvePromise(promise, v);
+
+// 2. 给 Promise 附加处理程序以便稍后恢复异步函数
+throwaway = createPromise();
+performPromiseThen(promise,
+    res => resume(foo, res),
+    err => throw(foo, err),
+    throwaway);
+
+// 3. 暂停 foo 并返回 implicit_promise
+w = suspend(foo, implicit_promise);
+```
+
+3、第三句
+
+```
+return w;
+
+对应
+
+resolvePromise(implicit_promise, w);
+```
+
+这里的关键是第二句：await 的执行。再来拆解一下：
+
+1、创建了 `promise` 对象，这里我们先假设 `v = Promise.resolve(42)` ，这里的 `resolvePromise` 
+可以理解为类似 `Promise.resolve()` 的作用
+
+2、创建 `throwaway` 对象，是为了规范存在，为了保证执行的 `promise` 是一个 Promise
+
+3、暂停函数，并返回 `implicit_promise`
+
+换成容易理解的JavaScript代码，类似这样（伪代码）：
+
+```javascript
+v = Promise.resolve(42);
+var promise = new Promise((resolve, reject) => {
+    v.then(res => {
+        resolve(res);
+    });
+});
+
+return implicit_promise = new Promise((resolve, reject) => {
+    var throwaway = new Promise((reso, rej) => {
+        promise.then(res => {
+            reso(res);
+        });
+    });
+   throwaway.then(res => {
+       resolve(res);
+   });
+});
+```
+通过上述代码可以看到产生了 3 条微任务（观察`then`的数量），分别是`v`, `promise`, `throwaway`，
+产生了大量的性能开销。
+
+后来在 Node 12 加入了 `promiseResolve` 函数，并且去掉了 `throwaway`：
+
+![img](../img/node-10-vs-node-12.svg)
+
+下面是`promiseResolve`函数伪代码：
+```javascript
+function promiseResolve(v) {
+    if (v is Promise) return v; // 如果 v 是 Promise，直接返回
+    promise = createPromise();
+    resolvePromise(promise, v);
+    return promise;
+}
+```
+
+上面模拟的伪代码就可变为：
+
+```javascript
+v = Promise.resolve(42);
+
+return implicit_promise = new Promise((resolve, reject) => {
+    var promise = new Promise(() => {
+        v.then(res => {
+            resolve(res);
+        });
+    });
+});
+```
+
+最终简化为只创建一条微任务。完结。
+
+参考文档：
+- https://tc39.es/ecma262/#sec-newpromisereactionjob
+- https://tc39.es/ecma262/#sec-newpromiseresolvethenablejob
+- https://tc39.es/ecma262/#sec-performpromisethen
+
+##### Node 中的 Event Loop
+
+正在学习，待补充...
 
 
 
