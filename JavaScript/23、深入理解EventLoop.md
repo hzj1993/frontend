@@ -246,8 +246,8 @@ timeout
 ```
 点击 outer 后，点击事件作为宏任务添加到宏任务队列，并触发回调函数 onClick 然后主线程开始执行 onClick，
 一开始输出 click ，setTimeout 加入宏任务队列，Promise then 加入微任务队列，Mutation Observer
-加入微任务队列，此时 onClick 函数退出调用栈，进入检查点，执行微任务队列中的任务，依次输出 promise 和 mutate。
-最后由于 setTimeout 已到期，执行定时器任务，输出 timeout
+加入微任务队列，此时准备退出 onClick 函数执行上下文并清空调用栈，进入检查点，执行微任务队列中的任务，
+依次输出 promise 和 mutate。最后由于 setTimeout 已到期，执行定时器任务，输出 timeout。
 ```
 
 再来看看点击 inner，结果是什么：
@@ -266,11 +266,11 @@ timeout
 ```
 点击 inner 后，点击事件作为宏任务添加到宏任务队列，并触发回调函数 onClick 然后主线程开始执行 onClick，
 一开始输出 click ，setTimeout 加入宏任务队列，Promise then 加入微任务队列，Mutation Observer
-加入微任务队列，此时 onClick 函数退出调用栈，进入检查点，执行微任务队列中的任务，依次输出 promise 和 mutate。
-此时 onClick 任务结束，同时发生事件冒泡，outer 的 onClick 函数被推入调用栈，输出 click，setTimeout
-添加到宏任务队列，Promise then 添加到微任务队列，Mutation Observer 添加到微任务队列，onClick 已没有
-可执行的同步代码，开始执行微任务队列，输出 promise、mutate，此时点击事件任务结束，执行下一个宏任务列表中的任务，
-输出 timeout、timeout
+加入微任务队列，此时准备退出 onClick 函数执行上下文并退出 onClick 调用栈，进入检查点，执行微任务队列中的任务，
+依次输出 promise 和 mutate。此时 onClick 任务结束，但是全局上下文未退出，此时发生事件冒泡，outer 的 onClick 
+函数被推入调用栈，输出 click。setTimeout 添加到宏任务队列，Promise then 添加到微任务队列，Mutation Observer 
+添加到微任务队列，onClick 已没有可执行的同步代码，开始执行微任务队列，输出 promise、mutate，此时点击事件任务结束，
+执行下一个宏任务列表中的任务，输出 timeout、timeout。
 ```
 
 这里可能会有疑惑，为什么两个 click 会分开输出？而且第一次 click 输出之后就会执行微任务列表中的任务，
@@ -304,8 +304,9 @@ timeout
 似乎与用户点击输出的结果差别很大，我再来解释一下。这里有个关键点：click() 让 inner 的 onClick 和 outer 的 
 onClick 同步触发，所以就会导致 click 先被输出。
 
-这里还有一个注意的地方：mutate 只输出了一次，这里由于第二次触发 mutation 的时候，发现微任务队列已有
-mutation 的微任务，就不再添加同样的微任务。
+这里还有一个注意的地方：mutate 只输出了一次，这里由于第二次触发 mutation 的时候，由于 MutationObserver 会
+在发生多次 DOM 变化后只触发一次异步回调，并且用一个数据结构保存这期间所有 DOM 的变化，所以这里只会有一个 
+MutationObserver 微任务。
 
 简单总结一下上面两条练习：
 
