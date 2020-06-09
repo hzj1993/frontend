@@ -123,7 +123,7 @@ setTimeout(cb, 0);
 这里设置了 0 毫秒循环调用 cb，看一下 Performance 的记录，前5次调用间隔比较小，嵌套调用5次以上，
 后面的时间间隔变成了 4 毫秒。
 
-![avatar](../img/setTimeout_1.png)
+![Performance](../img/setTimeout_1.png)
 
 在 Chrome 中，定时器嵌套调用5次以上，系统会判断该函数被阻塞，如果
 设置的时间间隔小于4毫秒，会设置为4毫秒。
@@ -190,7 +190,7 @@ setTimeout(MyObj.showName().bind(MyObj), 1000); // 显式绑定 this
 
 ##### XMLHttpRequest 怎么工作
 
-![avatar](../img/xhr.png)
+![xhr](../img/xhr.png)
 
 XHR 通过 send() 发出请求，浏览器渲染进程会将请求发送给网络进程，网络进程负责资源的下载，等网络进程
 收到数据后，会通过 IPC 通知渲染进程，渲染进程把 XHR 设置的回调函数封装成任务，添加到消息队列中，等
@@ -344,7 +344,7 @@ after:await
 我们预期是得到上面的结果，但这却是错误的，因为并没有按照规范执行，下面的才是正确的，我们先来看看
 以下代码在源码中怎么实现：
 
-![img](../img/await-under-the-hood.svg)
+![await](../img/await-under-the-hood.svg)
 
 1、首先是第一句
 
@@ -426,7 +426,7 @@ return implicit_promise = new Promise((resolve, reject) => {
 
 后来在 Node 12 加入了 `promiseResolve` 函数，并且去掉了 `throwaway`：
 
-![img](../img/node-10-vs-node-12.svg)
+![node10_vs_node12](../img/node-10-vs-node-12.svg)
 
 下面是`promiseResolve`函数伪代码：
 ```javascript
