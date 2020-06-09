@@ -4,7 +4,7 @@
 
 记录学习过程中个人觉得对我帮助较大的学习资料：
 
-###### JavaScript
+### JavaScript
 
 **夯实基础首选：**
 
@@ -37,7 +37,7 @@ https://es6.ruanyifeng.com/#docs/promise
 
 《掘金小册--JavaScript设计模式核心原理与应用实践》
 
-###### 网络
+### 网络
 
 **书籍**
 
@@ -61,17 +61,17 @@ https://es6.ruanyifeng.com/#docs/promise
 
 掘金上各种网络相关博客文章
 
-###### 框架相关
+### 框架相关
 
 《掘金小册--剖析Vue.js内部运行机制》
 
 《掘金小册--Vue.js组件精讲》
 
-###### Webpack
+### Webpack
 
 待补充...
 
-###### Node
+### Node
 
 《深入浅出Node.js》
 
@@ -79,7 +79,7 @@ Express源码
 
 Koa源码
 
-###### 数据结构与算法
+### 数据结构与算法
 
 LeetCode -- 剑指offer
 
