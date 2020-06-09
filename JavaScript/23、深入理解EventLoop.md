@@ -421,8 +421,8 @@ return implicit_promise = new Promise((resolve, reject) => {
    });
 });
 ```
-通过上述代码可以看到产生了 3 条微任务（观察`then`的数量），分别是`v`, `promise`, `throwaway`，
-产生了大量的性能开销。
+通过上述代码可以看到产生了 3 条微任务（观察`resolve`的数量），分别是 `promise.resolve()`, `throwaway.resolve()`, 
+`implicit_promise.resolve()`，产生了大量的性能开销。
 
 后来在 Node 12 加入了 `promiseResolve` 函数，并且去掉了 `throwaway`：
 
