@@ -1,10 +1,12 @@
-**前端知识学习记录**
+## 前端知识学习记录
 
 记录每天利用碎片时间学习的总结，记录起来，以便回顾。
 
+个人感受是理解最重要。写博客总结只是辅助手段。
+
 记录学习过程中个人觉得对我帮助较大的学习资料：
 
-### JavaScript
+## JavaScript
 
 **夯实基础首选：**
 
@@ -18,8 +20,7 @@
 
 《你不知道的JavaScript（下）》
 
-**[强烈推荐] 冴羽博客：**
-https://github.com/mqyqingfeng/Blog
+[冴羽博客](https://github.com/mqyqingfeng/Blog)
 
 **神三元博客：**
 http://47.98.159.95/my_blog/js-base/001.html
@@ -35,9 +36,21 @@ https://es6.ruanyifeng.com/#docs/promise
 
 **其他**
 
+[ecma-262 2019规范](https://tc39.es/ecma262/#sec-execution-contexts)
+
+[w3中文文档 ES5](https://www.w3.org/html/ig/zh/wiki/ES5)
+
 《掘金小册--JavaScript设计模式核心原理与应用实践》
 
-### 网络
+### [进阶之强烈推荐]
+
+[冴羽博客](https://github.com/mqyqingfeng/Blog)
+
+《极客时间--JavaScript核心原理解析》（ps：难度较高，需要结合最新ECMAScript规范理解）
+
+[ecma-262 2019规范](https://tc39.es/ecma262/#sec-execution-contexts)
+
+## 网络
 
 **书籍**
 
@@ -61,17 +74,21 @@ https://es6.ruanyifeng.com/#docs/promise
 
 掘金上各种网络相关博客文章
 
-### 框架相关
+## 浏览器
+
+《极客时间--浏览器工作原理与实践》
+
+## 框架相关
 
 《掘金小册--剖析Vue.js内部运行机制》
 
 《掘金小册--Vue.js组件精讲》
 
-### Webpack
+## Webpack
 
 待补充...
 
-### Node
+## Node
 
 《深入浅出Node.js》
 
@@ -79,7 +96,7 @@ Express源码
 
 Koa源码
 
-### 数据结构与算法
+## 数据结构与算法
 
 LeetCode -- 剑指offer
 
