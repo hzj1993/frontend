@@ -1,4 +1,4 @@
-## 前端知识学习记录
+# 前端知识学习记录
 
 记录每天利用碎片时间学习的总结，记录起来，以便回顾。
 
@@ -8,11 +8,11 @@
 
 ## JavaScript
 
-**夯实基础首选：**
+### 夯实基础首选
 
 《JavaScript高级程序设计（第三版）》
 
-**进阶：**
+### 进阶
 
 《你不知道的JavaScript（上）》
 
@@ -22,19 +22,17 @@
 
 [冴羽博客](https://github.com/mqyqingfeng/Blog)
 
-**神三元博客：**
-http://47.98.159.95/my_blog/js-base/001.html
+[神三元博客](http://47.98.159.95/my_blog/js-base/001.html)
 
-**阮一峰 ECMAScript 6 入门**
-https://es6.ruanyifeng.com/#docs/promise
+[阮一峰 ECMAScript 6 入门](https://es6.ruanyifeng.com/#docs/promise)
 
-**语音课程：**
+### 语音课程
 
 《极客时间--重学前端》
 
 《极客时间--浏览器工作原理》
 
-**其他**
+### 其他
 
 [ecma-262 2019规范](https://tc39.es/ecma262/#sec-execution-contexts)
 
@@ -42,7 +40,7 @@ https://es6.ruanyifeng.com/#docs/promise
 
 《掘金小册--JavaScript设计模式核心原理与应用实践》
 
-### [进阶之强烈推荐]
+### 个人强烈推荐
 
 [冴羽博客](https://github.com/mqyqingfeng/Blog)
 
@@ -52,13 +50,13 @@ https://es6.ruanyifeng.com/#docs/promise
 
 ## 网络
 
-**书籍**
+### 书籍
 
 《HTTP权威指南》
 
 《图解HTTP》
 
-**语音/视频课程**
+### 语音/视频课程
 
 《极客时间--趣谈网络协议》
 
@@ -66,11 +64,11 @@ https://es6.ruanyifeng.com/#docs/promise
 
 《极客时间--透视HTTP协议》
 
-**精读小册**
+### 精读小册
 
 《掘金小册--深入理解TCP协议》
 
-**其他**
+### 其他
 
 掘金上各种网络相关博客文章
 
