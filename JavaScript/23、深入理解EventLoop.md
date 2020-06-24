@@ -1,27 +1,319 @@
 
-### EventLoop
+# EventLoop
 
 关于 EventLoop 我看了很多文章，大多讲的比较浅显，我觉得还是不够深入，我决定还是要深入源码和官方文档去理解，
 苦于不会找 EventLoop 相关源码，只能看 Node 官网关于 Node 的事件循环的解释，以后找到浏览器相关的事件循环的源码一定补上。
 
-#### 数据结构
+## 数据结构
 - 栈
 - 堆
 - 队列
  
 这块不细说
 
-#### 基本知识
+## 基本知识
 
-##### 宏任务（macrotask）：
+### 浏览器大体组成部分
 
-script全部代码、setTimeout、setInterval、setImmediate、I/O、window.postMessage、UI Render
+浏览器进程：负责界面显示、子进程管理、用户交互、提供存储功能
 
-##### 微任务（microtask）：
+渲染进程：将HTML、CSS、JavaScript转换成可以显示的页面，渲染引擎 Blink 和 JS引擎 v8 都在这里运行；一般一个tab一个渲染进程；运行在安全沙箱内
+
+网络进程：负责网络资源加载
+
+插件进程：负责插件运行
+
+GPU进程：实现页面的绘制和动画的绘制
+
+### 渲染进程结构
+
+JavaScript引擎、渲染引擎、I/O线程等等
+
+### 消息队列
+
+在渲染进程中，会有很多任务，如JS的执行、HTML解析、布局、CSS样式计算、输入事件（点击、滚动等）、js定时器、文件读写等等，
+这些事件都在主线程上运行，这时就需要一个结构来维护这些事件，调度事件的执行顺序。
+
+消息队列是一个队列结构，先进后出。
+
+I/O线程负责接收其他进程发过来的消息，将其包装成为一个个事件后添加到消息队列中。
+
+WHATWG规范中说明，渲染进程内会有许多个线程，根据不同的优先级去调度不同的任务。
+
+但是在chromium源码实现中，只有一个普通队列和延迟队列，延迟队列存放setTimeout、setInterval、setImmediate以及chromium
+内部的一些延时任务，普通队列就是存放除这些以外的任务。
+
+### 消息队列中的事件类型
+
+可参考chromium源码：
+
+```
+enum class TaskType : unsigned char {
+  ///////////////////////////////////////
+  // Speced tasks should use one of the following task types
+  ///////////////////////////////////////
+
+  // Speced tasks and related internal tasks should be posted to one of
+  // the following task runners. These task runners may be throttled.
+
+  // This value is used as a default value in cases where TaskType
+  // isn't supported yet. Don't use outside platform/scheduler code.
+  // 默认类型
+  kDeprecatedNone = 0,
+
+  // https://html.spec.whatwg.org/multipage/webappapis.html#generic-task-sources
+  //
+  // This task source is used for features that react to DOM manipulations, such
+  // as things that happen in a non-blocking fashion when an element is inserted
+  // into the document.
+  // DOM操作，如DOM节点插入
+  kDOMManipulation = 1,
+  // This task source is used for features that react to user interaction, for
+  // example keyboard or mouse input. Events sent in response to user input
+  // (e.g. click events) must be fired using tasks queued with the user
+  // interaction task source.
+  // 用户交互，如键盘鼠标输入的回调事件
+  kUserInteraction = 2,
+  // TODO(altimin) Fix the networking task source related namings once it is
+  // clear how
+  // all loading tasks are annotated.
+  // This task source is used for features that trigger in response to network
+  // activity.
+  // 网络活动相关事件
+  kNetworking = 3,
+  // This is a part of Networking task source used to annotate tasks which are
+  // posted from the loading stack (i.e. WebURLLoader).
+  kNetworkingWithURLLoaderAnnotation = 50,
+  // This task source is used for control messages between kNetworking tasks.
+  kNetworkingControl = 4,
+  // This task source is used to queue calls to history.back() and similar APIs.
+  // history.back()及其类似的API调用事件
+  kHistoryTraversal = 5,
+
+  // https://html.spec.whatwg.org/multipage/embedded-content.html#the-embed-element
+  // This task source is used for the embed element setup steps.
+  // embed 标签元素创建
+  kEmbed = 6,
+
+  // https://html.spec.whatwg.org/multipage/embedded-content.html#media-elements
+  // This task source is used for all tasks queued in the [Media elements]
+  // section and subsections of the spec unless explicitly specified otherwise.
+  kMediaElementEvent = 7,
+
+  // https://html.spec.whatwg.org/multipage/scripting.html#the-canvas-element
+  // This task source is used to invoke the result callback of
+  // HTMLCanvasElement.toBlob().
+  kCanvasBlobSerialization = 8,
+
+  // https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model
+  // This task source is used when an algorithm requires a microtask to be
+  // queued.
+  kMicrotask = 9,
+
+  // https://html.spec.whatwg.org/multipage/webappapis.html#timers
+  // This task source is used to queue tasks queued by setInterval() and similar
+  // APIs.
+  kJavascriptTimer = 10,
+
+  // https://html.spec.whatwg.org/multipage/comms.html#sse-processing-model
+  // This task source is used for any tasks that are queued by EventSource
+  // objects.
+  kRemoteEvent = 11,
+
+  // https://html.spec.whatwg.org/multipage/comms.html#feedback-from-the-protocol
+  // The task source for all tasks queued in the [WebSocket] section of the
+  // spec.
+  kWebSocket = 12,
+
+  // https://html.spec.whatwg.org/multipage/comms.html#web-messaging
+  // This task source is used for the tasks in cross-document messaging.
+  kPostedMessage = 13,
+
+  // https://html.spec.whatwg.org/multipage/comms.html#message-ports
+  kUnshippedPortMessage = 14,
+
+  // https://www.w3.org/TR/FileAPI/#blobreader-task-source
+  // This task source is used for all tasks queued in the FileAPI spec to read
+  // byte sequences associated with Blob and File objects.
+  kFileReading = 15,
+
+  // https://www.w3.org/TR/IndexedDB/#request-api
+  kDatabaseAccess = 16,
+
+  // https://w3c.github.io/presentation-api/#common-idioms
+  // This task source is used for all tasks in the Presentation API spec.
+  kPresentation = 17,
+
+  // https://www.w3.org/TR/2016/WD-generic-sensor-20160830/#sensor-task-source
+  // This task source is used for all tasks in the Sensor API spec.
+  kSensor = 18,
+
+  // https://w3c.github.io/performance-timeline/#performance-timeline
+  kPerformanceTimeline = 19,
+
+  // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15
+  // This task source is used for all tasks in the WebGL spec.
+  kWebGL = 20,
+
+  // https://www.w3.org/TR/requestidlecallback/#start-an-event-loop-s-idle-period
+  kIdleTask = 21,
+
+  // Use MiscPlatformAPI for a task that is defined in the spec but is not yet
+  // associated with any specific task runner in the spec. MiscPlatformAPI is
+  // not encouraged for stable and matured APIs. The spec should define the task
+  // runner explicitly.
+  // The task runner may be throttled.
+  kMiscPlatformAPI = 22,
+
+  // Tasks used for DedicatedWorker's requestAnimationFrame.
+  kWorkerAnimation = 51,
+
+  // Obsolete.
+  // kExperimentalWebSchedulingUserInteraction = 53,
+  // kExperimentalWebSchedulingBestEffort = 54,
+
+  // https://drafts.csswg.org/css-font-loading/#task-source
+  kFontLoading = 56,
+
+  // https://w3c.github.io/manifest/#dfn-application-life-cycle-task-source
+  kApplicationLifeCycle = 57,
+
+  // https://wicg.github.io/background-fetch/#infrastructure
+  kBackgroundFetch = 58,
+
+  // https://www.w3.org/TR/permissions/
+  kPermission = 59,
+
+  // https://w3c.github.io/ServiceWorker/#dfn-client-message-queue
+  kServiceWorkerClientMessage = 60,
+
+  // https://wicg.github.io/web-locks/#web-locks-tasks-source
+  kWebLocks = 66,
+
+  ///////////////////////////////////////
+  // Not-speced tasks should use one of the following task types
+  ///////////////////////////////////////
+
+  // The default task type. The task may be throttled or paused.
+  kInternalDefault = 23,
+
+  // Tasks used for all tasks associated with loading page content.
+  kInternalLoading = 24,
+
+  // Tasks for tests or mock objects.
+  kInternalTest = 26,
+
+  // Tasks that are posting back the result from the WebCrypto task runner to
+  // the Blink thread that initiated the call and holds the Promise. Tasks with
+  // this type are posted by:
+  // * //components/webcrypto
+  kInternalWebCrypto = 27,
+
+  // Tasks to execute media-related things like logging or playback. Tasks with
+  // this type are mainly posted by:
+  // * //content/renderer/media
+  // * //media
+  kInternalMedia = 29,
+
+  // Tasks to execute things for real-time media processing like recording. If a
+  // task touches MediaStreamTracks, associated sources/sinks, and Web Audio,
+  // this task type should be used.
+  // Tasks with this type are mainly posted by:
+  // * //content/renderer/media
+  // * //media
+  // * blink/renderer/modules/webaudio
+  // * blink/public/platform/audio
+  kInternalMediaRealTime = 30,
+
+  // Tasks related to user interaction like clicking or inputting texts.
+  kInternalUserInteraction = 32,
+
+  // Tasks related to the inspector.
+  kInternalInspector = 33,
+
+  // Obsolete.
+  // kInternalWorker = 36,
+
+  // Translation task that freezes when the frame is not visible.
+  kInternalTranslation = 55,
+
+  // Tasks used at IntersectionObserver.
+  kInternalIntersectionObserver = 44,
+
+  // Task used for ContentCapture.
+  kInternalContentCapture = 61,
+
+  // Navigation tasks and tasks which have to run in order with them, including
+  // legacy IPCs and channel associated interfaces.
+  // Note that the ordering between tasks related to different frames is not
+  // always guaranteed - tasks belonging to different frames can be reordered
+  // when one of the frames is frozen.
+  // Note: all AssociatedRemotes/AssociatedReceivers should use this task type.
+  kInternalNavigationAssociated = 63,
+
+  // Tasks which should run when the frame is frozen, but otherwise should run
+  // in order with other legacy IPC and channel-associated interfaces.
+  // Only tasks related to unfreezing itself should run here, the majority of
+  // the tasks
+  // should use kInternalNavigationAssociated instead.
+  kInternalNavigationAssociatedUnfreezable = 64,
+
+  // Task used to split a script loading task for cooperative scheduling
+  kInternalContinueScriptLoading = 65,
+
+  // Experimental tasks types used for main thread scheduling postTask API
+  // (https://github.com/WICG/main-thread-scheduling).
+  // These task types should not be passed directly to
+  // FrameScheduler::GetTaskRunner(); they are used indirectly by
+  // WebSchedulingTaskQueues.
+  kExperimentalWebScheduling = 67,
+
+  // Tasks used to control frame lifecycle - they should run even when the frame
+  // is frozen.
+  kInternalFrameLifecycleControl = 68,
+
+  // Tasks used for find-in-page.
+  kInternalFindInPage = 70,
+
+  ///////////////////////////////////////
+  // The following task types are only for thread-local queues.
+  ///////////////////////////////////////
+
+  // The following task types are internal-use only, escpecially for annotations
+  // like UMA of per-thread task queues. Do not specify these task types when to
+  // get a task queue/runner.
+
+  kMainThreadTaskQueueV8 = 37,
+  kMainThreadTaskQueueCompositor = 38,
+  kMainThreadTaskQueueDefault = 39,
+  kMainThreadTaskQueueInput = 40,
+  kMainThreadTaskQueueIdle = 41,
+  kMainThreadTaskQueueIPC = 42,
+  kMainThreadTaskQueueControl = 43,
+  kMainThreadTaskQueueCleanup = 52,
+  kMainThreadTaskQueueMemoryPurge = 62,
+  kMainThreadTaskQueueNonWaking = 69,
+  kCompositorThreadTaskQueueDefault = 45,
+  kCompositorThreadTaskQueueInput = 49,
+  kWorkerThreadTaskQueueDefault = 46,
+  kWorkerThreadTaskQueueV8 = 47,
+  kWorkerThreadTaskQueueCompositor = 48,
+
+  kCount = 71,
+};
+```
+
+### 宏任务（macrotask）：
+
+浏览器发起的任务是宏任务。
+
+如，script全部代码、setTimeout、setInterval、setImmediate、I/O、window.postMessage、UI Render，或者参考上面源码类型。
+
+### 微任务（microtask）：
 
 Promise、process.nextTick、MutationObserver
 
-##### 浏览器 EventLoop 基本流程
+### 浏览器 EventLoop 基本流程
 
 1、整段脚本作为一个宏任务执行 
 
@@ -36,7 +328,7 @@ Promise、process.nextTick、MutationObserver
 
 6、从宏任务队列取出队首的任务执行，回到2，一直循环，直到宏任务和微任务队列为空
 
-##### 浏览器怎么实现 setTimeout
+### 浏览器怎么实现 setTimeout
 
 渲染进程所有运行在主线程上面的任务都要先添加到消息队列，然后事件循环系统根据消息队列的顺序
 执行任务。
@@ -90,6 +382,8 @@ void MainTherad(){
 ```
 
 处理完一个消息队列的任务后就会执行延迟队列的任务，等到期的任务都执行完之后再继续下一个循环。
+
+结合微任务可以理解为：消息队列一个宏任务 --> 该宏任务所有微任务 --> 延迟队列所有到期的宏任务
 
 **setTimeout 需要注意的一些问题**
 
@@ -188,7 +482,7 @@ setTimeout(() => { MyObj.showName(); }, 1000); // 放在匿名函数中执行
 setTimeout(MyObj.showName().bind(MyObj), 1000); // 显式绑定 this
 ```
 
-##### XMLHttpRequest 怎么工作
+### XMLHttpRequest 怎么工作
 
 ![xhr](../img/xhr.png)
 
@@ -196,7 +490,7 @@ XHR 通过 send() 发出请求，浏览器渲染进程会将请求发送给网�
 收到数据后，会通过 IPC 通知渲染进程，渲染进程把 XHR 设置的回调函数封装成任务，添加到消息队列中，等
 到主线程执行到该任务时执行相关的操作。
 
-##### 一些练习题
+### 一些练习题
 
 **练习一**
 
@@ -315,7 +609,7 @@ MutationObserver 微任务。
   - 每个回调之后，只要没有其他代码在执行
   - 每个宏任务的末尾
 
-##### async、await的执行顺序问题
+### async、await的执行顺序问题
 
 先看看以下代码。
 
@@ -459,7 +753,7 @@ return implicit_promise = new Promise((resolve, reject) => {
 - https://tc39.es/ecma262/#sec-newpromiseresolvethenablejob
 - https://tc39.es/ecma262/#sec-performpromisethen
 
-##### Node 中的 Event Loop
+### Node 中的 Event Loop
 
 正在学习，待补充...
 
