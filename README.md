@@ -26,15 +26,18 @@
 
 [阮一峰 ECMAScript 6 入门](https://es6.ruanyifeng.com/#docs/promise)
 
+[ecma-262 2019规范](https://tc39.es/ecma262/#sec-execution-contexts) 规范建议可以精读
+
 ### 语音课程
 
 《极客时间--重学前端》
 
 《极客时间--浏览器工作原理》
 
+《极客时间--JavaScript核心原理解析》
+
 ### 其他
 
-[ecma-262 2019规范](https://tc39.es/ecma262/#sec-execution-contexts)
 
 [w3中文文档 ES5](https://www.w3.org/html/ig/zh/wiki/ES5)
 
@@ -88,7 +91,19 @@ vue 3源码（已实现响应式相关api）
 
 ## Webpack
 
-待补充...
+《极客时间--玩转webpack》
+
+[最新webpack源码](https://github.com/webpack/webpack)
+
+[Webpack 源码解析](https://github.com/lihongxun945/diving-into-webpack)
+
+**推荐几篇webpack文章**
+
+https://juejin.cn/post/6844904031240863758
+
+https://fed.taobao.org/blog/taofed/do71ct/webpack-flow/?spm=taofed.blogs.header.7.78c95ac8Qei31f
+
+https://juejin.cn/post/6844904094281236487
 
 ## Node
 
